@@ -8,7 +8,6 @@ const router = Router(); // create router to create route bundle
 const { SECRET = "secret" } = process.env;
 
 router.post("/", async (req, res) => {
-  // const { User } = req.context.models;
   try {
     const walletAddress = req.body.walletAddress;
     const amount = req.body.amount;
@@ -16,15 +15,10 @@ router.post("/", async (req, res) => {
     // Find the user with the specified wallet address
     let user = await User.findOne({ walletAddress });
 
-
-    // if(user) {
-    //   console.log("Available");
-    // } else {
-    //   console.log("Not Available");
-    // }
     if (user) {
 
       user.amount += amount;
+      user.transactionId.push({ txnId: req.body.txnId });
       user.save();
 
       res.status(201).send({
@@ -32,15 +26,16 @@ router.post("/", async (req, res) => {
         message: "Amount Updated Successfully",
         data: user,
       });
-
-      // res.status(201).json(user);
     } else {
-      await User.create(req.body);
+      const newUser = await User.create({
+        ...req.body,
+        transactionId: [{ txnId: req.body.txnId }]
+      });
 
       res.status(201).send({
         success: true,
         message: "User Details Added Successfully",
-        data: req.body,
+        data: newUser,
       });
     }
   } catch (error) {
@@ -54,10 +49,7 @@ router.post("/", async (req, res) => {
 
 router.get("/", async (req, res) => {
   try {
-    // Fetch all user details from the database
     const users = await User.find();
-
-    // Return the user details in the response
     res.json(users);
   } catch (error) {
     console.error(error);
@@ -69,15 +61,12 @@ router.get("/", async (req, res) => {
 });
 
 router.get("/:walletAddress", async (req, res) => {
-  // const { User } = req.context.models;
   try {
     const walletAddress = req.params.walletAddress;
 
-    // Find the user with the specified wallet address
     const user = await User.findOne({ walletAddress });
 
     if (!user) {
-      // User not found, handle accordingly
       return res.status(404).json({ error: "User not found" });
     }
 

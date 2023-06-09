@@ -7,6 +7,12 @@ const UserSchema = new Schema({
     phoneNumber: { type: String },
     walletAddress: { type: String },
     amount: { type: Number },
+    transactionId: [
+        {
+            txnId: { type: String },
+            date: { type: Date, default: Date.now }
+        }
+    ]
 })
 
 // User model
