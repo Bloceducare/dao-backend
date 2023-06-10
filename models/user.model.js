@@ -5,12 +5,19 @@ const UserSchema = new Schema({
     fullName: { type: String },
     email: { type: String },
     phoneNumber: { type: String },
-    walletAddress: { type: String },
+    walletAddress: { type: String, unique: true },
     amount: { type: Number },
     transactionId: {
-        type: Array,
-        default: []
-    }
+        type: [{
+          txnId: {
+            type: String,
+            unique: true, // Ensure uniqueness of txnId
+          },
+          amount: { type: Number },
+          date: { type: Date },
+        }],
+        default: [],
+      },
 })
 
 // User model
