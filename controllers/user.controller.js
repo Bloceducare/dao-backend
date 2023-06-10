@@ -15,6 +15,8 @@ router.post("/", async (req, res) => {
     // Find the user with the specified wallet address
     let user = await User.findOne({ walletAddress });
 
+    let currentDate = Date.now();
+
     if (user) {
       await User.findOneAndUpdate({ walletAddress }, {
         amount: user.amount + amount,
@@ -22,7 +24,7 @@ router.post("/", async (req, res) => {
           transactionId: {
             txnId: req.body.txnId,
             amount,
-            date: Date.now
+            date: currentDate
           }
         }
       })
@@ -35,7 +37,10 @@ router.post("/", async (req, res) => {
     } else {
       const newUser = await User.create({
         ...req.body,
-        transactionId: [{ txnId: req.body.txnId, amount }]
+        transactionId: [{ 
+          txnId: req.body.txnId, 
+          amount, 
+          date: currentDate }]
       });
 
       res.status(201).send({
