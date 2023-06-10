@@ -10,16 +10,22 @@ const { SECRET = "secret" } = process.env;
 router.post("/", async (req, res) => {
   try {
     const walletAddress = req.body.walletAddress;
-    const amount = req.body.amount;
+    const amount = Number(req.body.amount);
 
     // Find the user with the specified wallet address
     let user = await User.findOne({ walletAddress });
 
     if (user) {
-
-      user.amount += amount;
-      user.transactionId.push({ txnId: req.body.txnId, amount: req.body.amount });
-      user.save();
+      await User.findOneAndUpdate({ walletAddress }, {
+        amount: user.amount + amount,
+        $push: {
+          transactionId: {
+            txnId: req.body.txnId,
+            amount,
+            date: Date.now
+          }
+        }
+      })
 
       res.status(201).send({
         success: true,
@@ -29,7 +35,7 @@ router.post("/", async (req, res) => {
     } else {
       const newUser = await User.create({
         ...req.body,
-        transactionId: [{ txnId: req.body.txnId, amount: req.body.amount }]
+        transactionId: [{ txnId: req.body.txnId, amount }]
       });
 
       res.status(201).send({
