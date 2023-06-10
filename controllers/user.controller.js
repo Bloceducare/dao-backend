@@ -18,7 +18,7 @@ router.post("/", async (req, res) => {
     if (user) {
 
       user.amount += amount;
-      user.transactionId.push({ txnId: req.body.txnId });
+      user.transactionId.push({ txnId: req.body.txnId, amount: req.body.amount });
       user.save();
 
       res.status(201).send({
@@ -29,7 +29,7 @@ router.post("/", async (req, res) => {
     } else {
       const newUser = await User.create({
         ...req.body,
-        transactionId: [{ txnId: req.body.txnId }]
+        transactionId: [{ txnId: req.body.txnId, amount: req.body.amount }]
       });
 
       res.status(201).send({
