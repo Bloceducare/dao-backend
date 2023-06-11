@@ -1,6 +1,8 @@
 require("dotenv").config(); // load .env variables
 const { Router } = require("express"); // import router from express
-const User = require("../models/user.model")
+const User = require("../models/user.model");
+const Tranasction = require("../models/transaction.model");
+const Transaction = require("../models/transaction.model");
 
 const router = Router(); // create router to create route bundle
 
@@ -9,51 +11,76 @@ const { SECRET = "secret" } = process.env;
 
 router.post("/", async (req, res) => {
   try {
-    const walletAddress = req.body.walletAddress;
+    const { walletAddress, txnId } = req.body;
     const amount = Number(req.body.amount);
+    const currentDate = Date.now();
+    if (!walletAddress || !txnId) {
+      return res.status(403).json({
+        success: false,
+        message: "All fields are required",
+      });
+    }
 
     // Find the user with the specified wallet address
-    let user = await User.findOne({ walletAddress });
+    const findUser = User.findOne({ walletAddress });
+    const findTx = Transaction.findOne({ txnId });
+    let [user, tx] = await Promise.all([findUser, findTx]);
 
-    let currentDate = Date.now();
+    if (!tx) {
+      Tranasction.create({
+        user: walletAddress,
+        txnId,
+        amount,
+        data: currentDate,
+      });
+    }
 
     if (user) {
-      await User.findOneAndUpdate({ walletAddress }, {
-        amount: user.amount + amount,
-        $push: {
-          transactionId: {
-            txnId: req.body.txnId,
-            amount,
-            date: currentDate
+      let updateUser = user;
+      if (!tx) {
+        updateUser = await User.findOneAndUpdate(
+          { walletAddress },
+          {
+            amount: user.amount + amount,
+            $push: {
+              transactionId: {
+                txnId,
+                amount,
+                date: currentDate,
+              },
+            },
           }
-        }
-      })
+        );
+      }
 
-      res.status(201).send({
+      return res.status(201).send({
         success: true,
         message: "Amount Updated Successfully",
-        data: user,
+        data: updateUser._doc,
       });
     } else {
       const newUser = await User.create({
         ...req.body,
-        transactionId: [{ 
-          txnId: req.body.txnId, 
-          amount, 
-          date: currentDate }]
+        transactionId: [
+          {
+            txnId: req.body.txnId,
+            amount,
+            date: currentDate,
+          },
+        ],
       });
 
-      res.status(201).send({
+      return res.status(201).send({
         success: true,
         message: "User Details Added Successfully",
-        data: newUser,
+        data: newUser._doc,
       });
     }
   } catch (error) {
     console.error(error);
     res.status(400).send({
       success: false,
-      message: error
+      message: error,
     });
   }
 });
@@ -66,7 +93,7 @@ router.get("/", async (req, res) => {
     console.error(error);
     res.status(400).send({
       success: false,
-      message: error
+      message: error,
     });
   }
 });
@@ -87,7 +114,7 @@ router.get("/:walletAddress", async (req, res) => {
     console.error(error);
     res.status(400).send({
       success: false,
-      message: error
+      message: error,
     });
   }
 });
